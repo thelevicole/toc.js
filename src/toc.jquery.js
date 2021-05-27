@@ -223,7 +223,7 @@
             } );
         }
 
-        const allowNesting = options.nestingDepth === -1 || options.nestingDepth > 0;
+        const allowNesting = options.nestingDepth < 0 || options.nestingDepth > 0;
         const $html = createList();
         let lastDepth = 1;
         let $lastLi = $();
@@ -238,43 +238,68 @@
             const $li = createListItem( hash.title, `#${hash.hash}` );
 
             // Add anchor link to item
-            createAnchorItem( hash.hash ).appendTo( $el );
+            if ( options.anchors ) {
+                createAnchorItem( hash.hash ).appendTo( $el );
+            }
 
-            // Higher depth
-            if ( depth > lastDepth && ( options.nestingDepth === -1 || depth <= options.nestingDepth ) ) {
+            // Handle nesting if enabled
+            if ( allowNesting ) {
 
-                let $startingLi = $lastLi;
-                const limit = ( depth - lastDepth );
+                // Higher depth
+                if ( depth > lastDepth ) {
 
-                for ( let i = 0; i < limit; i++ ) {
-                    // Create new sub-list
-                    const $list = createList();
+                    let $startingLi = $lastLi;
 
-                    // Add list to last sub li
-                    $startingLi.append( $list );
+                    let limit = depth;
 
-                    // Add new list depth
-                    lists.push( $list );
+                    // Set limit to maximum nesting depth, if option has value
+                    if ( options.nestingDepth > 0 && depth > options.nestingDepth ) {
+                        limit = options.nestingDepth + 1;
+                    }
 
-                    // Add empty list item if multiple depths higher than last depth
-                    if ( ( i + 1 ) < limit ) {
-                        // Create new starting li for next loop
-                        $startingLi = createListItem().appendTo( $list );
+                    limit = limit - lastDepth;
+
+                    for ( let i = 0; i < limit; i++ ) {
+                        // Create new sub-list
+                        const $list = createList();
+
+                        // Add list to last sub li
+                        $startingLi.append( $list );
+
+                        // Add new list depth
+                        lists.push( $list );
+
+                        // Add empty list item if multiple depths higher than last depth
+                        if ( ( i + 1 ) < limit ) {
+                            // Create new starting li for next loop
+                            $startingLi = createListItem().appendTo( $list );
+                        }
                     }
                 }
-            }
 
-            // Lower depth
-            else if ( depth < lastDepth ) {
-                for ( let i = 0; i < ( lastDepth - depth ); i++ ) {
-                    // Remove higher level lists
-                    lists.pop();
+                // Lower depth
+                else if ( depth < lastDepth ) {
+
+                    let limit = lastDepth;
+
+                    // Set limit to maximum nesting depth, if option has value
+                    if ( options.nestingDepth > 0 && lastDepth > options.nestingDepth ) {
+                        limit = options.nestingDepth + 1;
+                    }
+
+                    limit = limit - depth;
+
+                    for ( let i = 0; i < limit; i++ ) {
+                        // Remove higher level lists
+                        lists.pop();
+                    }
                 }
-            }
 
-            // Same depth
-            else {
-                // Do nothing
+                // Same depth
+                else {
+                    // Do nothing
+                }
+
             }
 
             // Add item to list
