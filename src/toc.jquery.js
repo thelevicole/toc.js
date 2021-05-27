@@ -210,16 +210,16 @@
             text: options.anchorText
         } );
 
-        let contentMap = {};
+        let contentMap = [];
 
         for ( var selector in options.selectors ) {
             const depth = options.selectors[ selector ];
             options.contentTarget.find( selector ).each( function() {
                 const $this = $( this );
-                contentMap[ $this.index() ] = {
+                contentMap.push( {
                     $el: $this,
                     depth: depth
-                };
+                } );
             } );
         }
 
@@ -230,8 +230,8 @@
 
         const lists = [];
 
-        for ( let domIndex in contentMap ) {
-            const contentItem = contentMap[ domIndex ];
+        for ( let itemIndex = 0; itemIndex < contentMap.length; itemIndex++ ) {
+            const contentItem = contentMap[ itemIndex ];
             const $el = contentItem.$el;
             const hash = createHash( $el.text() );
             const depth = contentItem.depth;
