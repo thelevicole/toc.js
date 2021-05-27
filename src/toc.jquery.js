@@ -1,7 +1,7 @@
 ( function( $ ) {
-	'use strict';
+    'use strict';
 
-	$.fn.tableOfContents = function( args = {} ) {
+    $.fn.tableOfContents = function( args = {} ) {
 
         /**
          * Merge our default values with user defined options.
@@ -9,6 +9,7 @@
          * @type {object}
          */
         const options = $.extend( true, {
+            contentTarget: $( document.body ),
             selectors: 'h1$1; h2$2; h3$3; h4$4; h5$5; h6$6;',
             nestingDepth: -1, // How deep we'll allow nesting
             slugLength: 40, // How many chars are alowed in the hash slug
@@ -189,6 +190,8 @@
 
             if ( link ) {
                 createLink( link, title ).appendTo( $li );
+            } else if ( title ) {
+                $li.text( title );
             }
 
             return $li;
@@ -220,38 +223,66 @@
             } );
         }
 
-        const $html = createList();
-
-        let lastLevel = 0;
-        let $lastUl = $html;
-        var $lastLi = null;
-
         const allowNesting = options.nestingDepth === -1 || options.nestingDepth > 0;
+        const $html = createList();
+        let lastDepth = 1;
+        let $lastLi = $();
+
+        const lists = [];
 
         for ( let domIndex in contentMap ) {
-            const contentItem =  contentMap[ domIndex ];
-            const $item = contentItem.$el;
-            const hash = createHash( $item.text() );
+            const contentItem = contentMap[ domIndex ];
+            const $el = contentItem.$el;
+            const hash = createHash( $el.text() );
+            const depth = contentItem.depth;
+            const $li = createListItem( hash.title, `#${hash.hash}` );
 
-            const thisLevel = contentItem.depth;
-            let $thisUl = $lastUl;
-            const $thisLi = createListItem( hash.title, `#${hash.hash}` );
+            // Add anchor link to item
+            createAnchorItem( hash.hash ).appendTo( $el );
 
-            createAnchorItem( hash.hash ).appendTo( $item );
+            // Higher depth
+            if ( depth > lastDepth && ( options.nestingDepth === -1 || depth <= options.nestingDepth ) ) {
 
-            if ( allowNesting && $lastLi ) {
+                let $startingLi = $lastLi;
+                const limit = ( depth - lastDepth );
 
-                // Current level is nested
-                if ( thisLevel > lastLevel && ( options.nestingDepth === -1 || thisLevel <= options.nestingDepth ) ) {
-                    $thisUl = createList().appendTo( $lastLi );
+                for ( let i = 0; i < limit; i++ ) {
+                    // Create new sub-list
+                    const $list = createList();
+
+                    // Add list to last sub li
+                    $startingLi.append( $list );
+
+                    // Add new list depth
+                    lists.push( $list );
+
+                    // Add empty list item if multiple depths higher than last depth
+                    if ( ( i + 1 ) < limit ) {
+                        // Create new starting li for next loop
+                        $startingLi = createListItem().appendTo( $list );
+                    }
                 }
-
             }
 
-            $thisLi.appendTo( $thisUl );
+            // Lower depth
+            else if ( depth < lastDepth ) {
+                for ( let i = 0; i < ( lastDepth - depth ); i++ ) {
+                    // Remove higher level lists
+                    lists.pop();
+                }
+            }
 
-            $lastLi = $thisLi;
-            lastLevel = thisLevel;
+            // Same depth
+            else {
+                // Do nothing
+            }
+
+            // Add item to list
+            ( lists.slice(-1).pop() || $html ).append( $li );
+
+            // Store last meta
+            lastDepth = depth;
+            $lastLi = $li;
         }
 
         $html.appendTo( this );
