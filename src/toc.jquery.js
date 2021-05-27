@@ -210,6 +210,25 @@
             text: options.anchorText
         } );
 
+        /**
+         * Get an elements DOM index relevant to all it's parents
+         *
+         * @param {jQuery} $element
+         * @param {string} seperator
+         * @return {string}
+         */
+        const getElementDomIndex = ( $element, seperator = '.' ) => {
+            const domIndexParts = [];
+
+            $( $element.parents().get().reverse() ).each( function() {
+                domIndexParts.push( $( this ).index() );
+            } );
+
+            domIndexParts.push( $element.index() );
+
+            return domIndexParts.join( seperator );
+        }
+
         let contentMap = [];
 
         for ( var selector in options.selectors ) {
@@ -217,11 +236,26 @@
             options.contentTarget.find( selector ).each( function() {
                 const $this = $( this );
                 contentMap.push( {
+                    index: getElementDomIndex( $this ),
                     $el: $this,
                     depth: depth
                 } );
             } );
         }
+
+        // Sort the content map by DOM index.
+        contentMap.sort( function( a, b ) {
+
+            if ( a.index < b.index ){
+                return -1;
+            }
+
+            if ( a.index > b.index ){
+                return 1;
+            }
+
+            return 0;
+        } );
 
         const allowNesting = options.nestingDepth < 0 || options.nestingDepth > 0;
         const $html = createList();
